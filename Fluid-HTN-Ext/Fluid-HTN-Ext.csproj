@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Fluid_HTN_Ext</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Fluid-HTN">
+      <HintPath>..\..\fluid-hierarchial-task-network\Fluid-HTN\bin\Debug\Fluid-HTN.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
