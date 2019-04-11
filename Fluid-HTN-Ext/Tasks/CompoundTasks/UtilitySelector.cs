@@ -9,6 +9,8 @@ namespace FluidHTN.Compounds
     /// </summary>
     public class UtilitySelector : Selector
     {
+        // ========================================================= DECOMPOSITION
+
         /// <summary>
         ///     In a Utility Selector decomposition, we select a single sub-task based on utility theory.
         ///     If the sub-task fail to decompose, that means the entire Selector failed to decompose (we don't try to decompose
@@ -54,6 +56,8 @@ namespace FluidHTN.Compounds
 
             return Plan;
         }
+
+        // ========================================================= INTERNAL FUNCTIONALITY
 
         /// <summary>
         ///     We compare the utility among all sub-tasks and pick the best. We require these sub-tasks to implement the

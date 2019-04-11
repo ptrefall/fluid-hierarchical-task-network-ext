@@ -9,7 +9,11 @@ namespace FluidHTN.Compounds
     /// </summary>
     public class RandomSelector : Selector
     {
+        // ========================================================= FIELDS
+
         protected Random _random = new Random();
+
+        // ========================================================= DECOMPOSITION
 
         /// <summary>
         ///     In a Random Selector decomposition, we simply select a sub-task randomly, and stick with it for the duration of the
