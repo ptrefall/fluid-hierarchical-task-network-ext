@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FluidHTN
+﻿namespace FluidHTN
 {
     /// <summary>
-    /// Extend a task with the Utility interface, making it viable for use with the UtilitySelector extension.
+    ///     Extend a task with the Utility interface, making it viable for use with the UtilitySelector extension.
     /// </summary>
-    interface IUtilityTask
+    internal interface IUtilityTask
     {
         /// <summary>
-        /// A Utility function that scores its vitality against other utility tasks.
+        ///     A Utility function that scores its vitality against other utility tasks.
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
