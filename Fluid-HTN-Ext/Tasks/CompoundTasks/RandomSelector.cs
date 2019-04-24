@@ -29,8 +29,8 @@ namespace FluidHTN.Compounds
         {
             Plan.Clear();
 
-            var taskIndex = _random.Next(startIndex, Children.Count - 1);
-            var task = Children[taskIndex];
+            var taskIndex = _random.Next(startIndex, Subtasks.Count - 1);
+            var task = Subtasks[taskIndex];
 
             if (task.IsValid(ctx) == false)
                 return Plan;
@@ -45,14 +45,10 @@ namespace FluidHTN.Compounds
                 // If the decomposition failed
                 if (result.Count == 0) return Plan;
 
-                var i = result.Count;
                 while (result.Count > 0)
                 {
                     var res = result.Dequeue();
                     Plan.Enqueue(res);
-                    i--;
-                    if (i < 0)
-                        break;
                 }
             }
             else if (task is IPrimitiveTask primitiveTask)

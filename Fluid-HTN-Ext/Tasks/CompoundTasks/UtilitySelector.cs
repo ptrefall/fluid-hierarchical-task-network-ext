@@ -38,14 +38,10 @@ namespace FluidHTN.Compounds
                 // If the decomposition failed
                 if (result.Count == 0) return Plan;
 
-                var i = result.Count;
                 while (result.Count > 0)
                 {
                     var res = result.Dequeue();
                     Plan.Enqueue(res);
-                    i--;
-                    if (i < 0)
-                        break;
                 }
             }
             else if (task is IPrimitiveTask primitiveTask)
@@ -71,12 +67,12 @@ namespace FluidHTN.Compounds
             var bestScore = 0f;
             ITask bestTask = null;
 
-            for (var taskIndex = startIndex; taskIndex < Children.Count; taskIndex++)
+            for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
             {
-                var task = Children[taskIndex];
+                var task = Subtasks[taskIndex];
                 if (task is IUtilityTask utilityTask)
                 {
-                    if (task.IsValid(ctx) == false)
+                    if (utilityTask.IsValid(ctx) == false)
                         continue;
 
                     var score = utilityTask.Score(ctx);

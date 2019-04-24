@@ -3,7 +3,7 @@
     /// <summary>
     ///     Extend a task with the Utility interface, making it viable for use with the UtilitySelector extension.
     /// </summary>
-    internal interface IUtilityTask
+    internal interface IUtilityTask : ITask
     {
         /// <summary>
         ///     A Utility function that scores its vitality against other utility tasks.
