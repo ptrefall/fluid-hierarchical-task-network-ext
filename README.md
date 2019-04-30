@@ -7,7 +7,7 @@ Work in progress extensions to the [Fluid Hierarchical Task Network](https://git
 * Utility Selector selects the sub-task with the best utility. Requires sub-tasks to implement the IUtilityTask interface.
 
 ## Support
-Join the [discord channel](https://discord.gg/u45nmb) to share your experience and get support on the usage of Fluid HTN.
+Join the [discord channel](https://discord.gg/MuccnAz) to share your experience and get support on the usage of Fluid HTN.
 
 ## TODO
 * JSON serialization that opens up Fluid HTN to more editor possibilities.
