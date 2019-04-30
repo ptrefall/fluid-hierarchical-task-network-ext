@@ -1,4 +1,5 @@
 ![Fluid Hierarchical Task Network Extensions](https://i.imgur.com/xKfIV0f.png)
+#Fluid Extensions
 Work in progress extensions to the [Fluid Hierarchical Task Network](https://github.com/ptrefall/fluid-hierarchical-task-network).
 
 ## Features
