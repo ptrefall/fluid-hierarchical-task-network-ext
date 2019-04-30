@@ -29,7 +29,7 @@ namespace FluidHTN.Compounds
         {
             Plan.Clear();
 
-            var taskIndex = _random.Next(startIndex, Subtasks.Count - 1);
+            var taskIndex = _random.Next(startIndex, Subtasks.Count);
             var task = Subtasks[taskIndex];
 
             if (task.IsValid(ctx) == false)
