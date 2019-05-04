@@ -32,6 +32,13 @@ namespace FluidHTN
             return builder.CompoundTask<UtilitySelector>(name);
         }
 
+        public static DB GOAPSequence<DB, T>(this DB builder, string name)
+            where DB : BaseDomainBuilder<DB, T>
+            where T : IContext
+        {
+            return builder.CompoundTask<GOAPSequence>(name);
+        }
+
         // ========================================================= SERIALIZATION
 
         /// <summary>
