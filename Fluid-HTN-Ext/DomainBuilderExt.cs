@@ -1,4 +1,5 @@
-﻿using FluidHTN.Compounds;
+﻿using System.Collections.Generic;
+using FluidHTN.Compounds;
 
 namespace FluidHTN
 {
@@ -32,11 +33,20 @@ namespace FluidHTN
             return builder.CompoundTask<UtilitySelector>(name);
         }
 
-        public static DB GOAPSequence<DB, T>(this DB builder, string name)
+        public static DB GOAPSequence<DB, T>(this DB builder, string name, params KeyValuePair<byte, byte>[] goal)
             where DB : BaseDomainBuilder<DB, T>
             where T : IContext
         {
-            return builder.CompoundTask<GOAPSequence>(name);
+            builder.CompoundTask<GOAPSequence>(name);
+            if (builder.Pointer is GOAPSequence goap)
+            {
+                foreach (var kvp in goal)
+                {
+                    goap.AddGoalState(kvp.Key, kvp.Value);
+                }
+            }
+
+            return builder;
         }
 
         // ========================================================= SERIALIZATION

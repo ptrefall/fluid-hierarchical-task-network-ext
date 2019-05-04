@@ -12,7 +12,12 @@ namespace FluidHTN.Compounds
     public class GOAPSequence : Sequence
     {
         // ========================================================= FIELDS
-        private Dictionary<byte, byte> _goal;
+        private Dictionary<byte, byte> _goal = new Dictionary<byte, byte>();
+
+        public void AddGoalState(byte state, byte value)
+        {
+            _goal.Add(state, value);
+        }
 
         // ========================================================= DECOMPOSITION
 
