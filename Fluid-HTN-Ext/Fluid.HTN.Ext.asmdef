@@ -1,8 +1,8 @@
 {
     "name": "Fluid.HTN.Ext",
     "references": [
-        "Fluid.HTN"
-    ],
+		"Fluid.HTN"
+	],
     "optionalUnityReferences": [],
     "includePlatforms": [],
     "excludePlatforms": [],
