@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using FluidHTN.Compounds;
+using FluidHTN.PrimitiveTasks;
 
 namespace FluidHTN
 {
@@ -33,6 +35,13 @@ namespace FluidHTN
             return builder.CompoundTask<UtilitySelector>(name);
         }
 
+        /// <summary>
+        ///     A compound task that will find the shortest path through a sequence of sub-tasks
+        ///     in order to reach the defined goal state.
+        ///     Sub-tasks can only be primitive tasks that implement the IGOAPTask interface.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public static DB GOAPSequence<DB, T>(this DB builder, string name, params KeyValuePair<byte, byte>[] goal)
             where DB : BaseDomainBuilder<DB, T>
             where T : IContext
@@ -47,6 +56,52 @@ namespace FluidHTN
             }
 
             return builder;
+        }
+
+        // ========================================================= PRIMITIVE TASKS
+
+        /// <summary>
+        ///     A primitive task that implements the Utility Task interface, for use as sub-task of the
+        ///     UtilitySelect compound task.
+        ///     This primitive task can contain conditions, an operator and effects.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static DB UtilityAction<DB, T, P>(this DB builder, string name)
+            where DB : BaseDomainBuilder<DB, T>
+            where T : IContext
+            where P : IUtilityTask, IPrimitiveTask, new()
+        {
+            if (builder.Pointer is UtilitySelector)
+            {
+                return builder.PrimitiveTask<P>(name);
+            }
+            else
+            {
+                throw new Exception("Pointer is not a Utility Selector, which is required for adding Utility Actions!");
+            }
+        }
+
+        /// <summary>
+        ///     A primitive task that implements the GOAP Task interface, for use as sub-task of the
+        ///     GOAP Sequence compound task.
+        ///     This primitive task can contain conditions, an operator and effects.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static DB GOAPAction<DB, T, P>(this DB builder, string name)
+            where DB : BaseDomainBuilder<DB, T>
+            where T : IContext
+            where P : IGOAPTask, new()
+        {
+            if (builder.Pointer is GOAPSequence)
+            {
+                return builder.PrimitiveTask<P>(name);
+            }
+            else
+            {
+                throw new Exception("Pointer is not a GOAP Sequence, which is required for adding GOAP Actions!");
+            }
         }
 
         // ========================================================= SERIALIZATION
