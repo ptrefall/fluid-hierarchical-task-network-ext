@@ -24,10 +24,21 @@ namespace FluidHTN.Compounds
             Plan.Clear();
 
             var leaves = ctx.Factory.CreateList<GOAPNode>();
-            var start = new GOAPNode() {Parent = null, RunningCost = 0f, Task = null};
+            var start = ctx.Factory.Create<GOAPNode>();
+            {
+                start.Parent = null;
+                start.RunningCost = 0f;
+                start.Task = null;
+            }
+
             if (TryBuildGraph(ctx, start, leaves, Subtasks))
             {
                 GeneratePlan(ctx, GetCheapestLeaf(leaves));
+            }
+
+            foreach (var leaf in leaves)
+            {
+                FreeNode(ctx, leaf);
             }
             ctx.Factory.FreeList(ref leaves);
 
@@ -72,6 +83,16 @@ namespace FluidHTN.Compounds
 
         }
 
+        private void FreeNode(IContext ctx, GOAPNode node)
+        {
+            var nextNode = node.Parent;
+            ctx.Factory.Free(ref node);
+            if (nextNode != null)
+            {
+                FreeNode(ctx, nextNode);
+            }
+        }
+
         private bool TryBuildGraph(IContext ctx, GOAPNode parent, List<GOAPNode> leaves, List<ITask> openSubtasks)
         {
             var foundLeaf = false;
@@ -93,7 +114,13 @@ namespace FluidHTN.Compounds
 
                     goapTask.ApplyEffects(ctx);
 
-                    var node = new GOAPNode() { Parent = parent, RunningCost = parent.RunningCost + goapTask.Cost(ctx), Task = goapTask};
+                    var node = ctx.Factory.Create<GOAPNode>();
+                    {
+                        node.Parent = parent;
+                        node.RunningCost = parent.RunningCost + goapTask.Cost(ctx);
+                        node.Task = goapTask;
+                    }
+
                     if (ValidatesGoal(ctx))
                     {
                         leaves.Add(node);
@@ -105,6 +132,14 @@ namespace FluidHTN.Compounds
                         if (TryBuildGraph(ctx, node, leaves, subset))
                         {
                             foundLeaf = true;
+                        }
+                        else
+                        {
+                            // If we failed to find a valid branch for this node,
+                            // then it will no longer be referenced after this point.
+                            // Otherwise its still used as a parent reference in the
+                            // leaves list, and we can't return it to the factory yet.
+                            ctx.Factory.Free(ref node);
                         }
                         ctx.Factory.FreeList(ref subset);
                     }
