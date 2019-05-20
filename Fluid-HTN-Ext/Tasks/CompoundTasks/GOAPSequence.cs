@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using FluidHTN.Conditions;
-using FluidHTN.PrimitiveTasks;
 
 namespace FluidHTN.Compounds
 {
@@ -36,14 +34,14 @@ namespace FluidHTN.Compounds
             return Plan;
         }
 
-        private GOAPNode? GetCheapestLeaf(List<GOAPNode> leaves)
+        private GOAPNode GetCheapestLeaf(List<GOAPNode> leaves)
         {
-            GOAPNode? cheapestLeaf = null;
+            GOAPNode cheapestLeaf = null;
             foreach (var leaf in leaves)
             {
-                if (cheapestLeaf.HasValue)
+                if (cheapestLeaf != null)
                 {
-                    if (leaf.RunningCost < cheapestLeaf.Value.RunningCost)
+                    if (leaf.RunningCost < cheapestLeaf.RunningCost)
                     {
                         cheapestLeaf = leaf;
                     }
@@ -62,14 +60,14 @@ namespace FluidHTN.Compounds
         /// such that the last task on the queue is the task of our leaf node that we started with.
         /// </summary>
         /// <param name="node"></param>
-        private void GeneratePlan(IContext ctx, GOAPNode? node)
+        private void GeneratePlan(IContext ctx, GOAPNode node)
         {
-            if (node.HasValue)
+            if (node != null && node.Task != null)
             {
-                GeneratePlan(ctx, node.Value.Parent);
+                GeneratePlan(ctx, node.Parent);
 
-                node.Value.Task.ApplyEffects(ctx);
-                Plan.Enqueue(node.Value.Task);
+                node.Task.ApplyEffects(ctx);
+                Plan.Enqueue(node.Task);
             }
 
         }
@@ -80,7 +78,7 @@ namespace FluidHTN.Compounds
 
             for (var taskIndex = 0; taskIndex < openSubtasks.Count; taskIndex++)
             {
-                var task = Subtasks[taskIndex];
+                var task = openSubtasks[taskIndex];
                 if (task.IsValid(ctx) == false)
                 {
                     continue;
@@ -148,12 +146,7 @@ namespace FluidHTN.Compounds
 
             return subset;
         }
-
-        private struct GOAPNode
-        {
-            public GOAPNode? Parent;
-            public float RunningCost;
-            public IGOAPTask Task;
-        }
     }
+
+    
 }
