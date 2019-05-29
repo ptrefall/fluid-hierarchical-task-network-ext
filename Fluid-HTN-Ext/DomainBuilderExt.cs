@@ -36,6 +36,40 @@ namespace FluidHTN
         }
 
         /// <summary>
+        ///     A compound task that will invert the status of its decomposition. Rejection is still returned as rejected.
+        ///     Sub-tasks can be sequences, selectors or actions.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static DB InvertStatusSelect<DB, T>(this DB builder, string name)
+            where DB : BaseDomainBuilder<DB, T>
+            where T : IContext
+        {
+            return builder.CompoundTask<InvertStatusSelector>(name);
+        }
+
+        /// <summary>
+        ///     A compound task that will always succeed, even when its decomposition fail internally.
+        ///     This can be used for "optional" content, but only as sub-task of a Sequence.
+        ///     Sub-tasks can be sequences, selectors or actions.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static DB AlwaysSucceedSelect<DB, T>(this DB builder, string name)
+            where DB : BaseDomainBuilder<DB, T>
+            where T : IContext
+        {
+            if (builder.Pointer is IDecomposeAll)
+            {
+                return builder.CompoundTask<AlwaysSucceedSelector>(name);
+            }
+            else
+            {
+                throw new Exception("Pointer is not a Sequence, which is required for adding Always Succeed selectors!");
+            }
+        }
+
+        /// <summary>
         ///     A compound task that will find the shortest path through a sequence of sub-tasks
         ///     in order to reach the defined goal state.
         ///     Sub-tasks can only be primitive tasks that implement the IGOAPTask interface.
