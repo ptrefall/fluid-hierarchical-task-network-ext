@@ -20,28 +20,38 @@ namespace FluidHTN.Compounds
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        protected override Queue<ITask> OnDecompose(IContext ctx, int startIndex)
+        protected override DecompositionStatus OnDecompose(IContext ctx, int startIndex, out Queue<ITask> result)
         {
             Plan.Clear();
 
             var task = FindBestTask(ctx, startIndex);
             if (task == null)
-                return Plan;
+            {
+                result = Plan;
+                return DecompositionStatus.Failed;
+            }
 
             if (task is ICompoundTask compoundTask)
             {
-                var result = compoundTask.Decompose(ctx, 0);
+                var status = compoundTask.Decompose(ctx, 0, out var subPlan);
 
                 // If result is null, that means the entire planning procedure should cancel.
-                if (result == null) return null;
+                if (status == DecompositionStatus.Rejected)
+                {
+                    result = null;
+                    return DecompositionStatus.Rejected;
+                }
 
                 // If the decomposition failed
-                if (result.Count == 0) return Plan;
-
-                while (result.Count > 0)
+                if (status == DecompositionStatus.Failed)
                 {
-                    var res = result.Dequeue();
-                    Plan.Enqueue(res);
+                    result = Plan;
+                    return DecompositionStatus.Failed;
+                }
+
+                while (subPlan.Count > 0)
+                {
+                    Plan.Enqueue(subPlan.Dequeue());
                 }
             }
             else if (task is IPrimitiveTask primitiveTask)
@@ -50,7 +60,8 @@ namespace FluidHTN.Compounds
                 Plan.Enqueue(task);
             }
 
-            return Plan;
+            result = Plan;
+            return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
         }
 
         // ========================================================= INTERNAL FUNCTIONALITY

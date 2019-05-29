@@ -19,7 +19,7 @@ namespace FluidHTN.Compounds
 
         // ========================================================= DECOMPOSITION
 
-        protected override Queue<ITask> OnDecompose(IContext ctx, int startIndex)
+        protected override DecompositionStatus OnDecompose(IContext ctx, int startIndex, out Queue<ITask> result)
         {
             Plan.Clear();
 
@@ -42,7 +42,8 @@ namespace FluidHTN.Compounds
             }
             ctx.Factory.FreeList(ref leaves);
 
-            return Plan;
+            result = Plan;
+            return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
         }
 
         private GOAPNode GetCheapestLeaf(List<GOAPNode> leaves)
