@@ -1,9 +1,10 @@
+# Visual Sudio
+/.vs/
+/*.user
+
+# Visual Studio Code
+/.vscode/
+
+# Builds
 /Fluid-HTN-Ext/obj
 /Fluid-HTN-Ext/bin
-/.vs/Fluid-HTN-Ext/DesignTimeBuild/*.dtbcache
-/.vs/Fluid-HTN-Ext/v16/*.suo
-/.vs/Fluid-HTN-Ext/v16/Server/sqlite3/*.lock
-/.vs/Fluid-HTN-Ext/v16/Server/sqlite3/*.ide
-/.vs/Fluid-HTN-Ext/v16/Server/sqlite3/*.ide-shm
-/.vs/Fluid-HTN-Ext/v16/Server/sqlite3/*.ide-wal
-/*.user
