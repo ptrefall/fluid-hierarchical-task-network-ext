@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <Reference Include="Fluid-HTN">
-      <HintPath>..\..\fluid-hierarchial-task-network\Fluid-HTN\bin\Debug\Fluid-HTN.dll</HintPath>
+      <HintPath>..\..\fluid-hierarchical-task-network\Fluid-HTN\bin\Debug\Fluid-HTN.dll</HintPath>
     </Reference>
   </ItemGroup>
 
