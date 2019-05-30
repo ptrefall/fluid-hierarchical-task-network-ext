@@ -27,6 +27,7 @@ namespace FluidHTN.Compounds
 
         protected readonly int Repetitions;
         private readonly RepetitionType Type;
+        private bool IsPredecomposed;
 
         /// <summary>
         ///     A sequence that repeats its subtasks a number of times.
@@ -43,18 +44,23 @@ namespace FluidHTN.Compounds
             {
                 Repetitions = repetitions;
                 Type = type;
+                IsPredecomposed = false;
             }
         }
 
         protected override DecompositionStatus OnDecompose(IContext ctx, int startIndex, out Queue<ITask> result)
         {
-            if (Type == RepetitionType.Interleaved)
+            if (!IsPredecomposed)
             {
-                PreDecomposeInterleaved();
-            }
-            else
-            {
-                PreDecomposeBlockwise();
+                if (Type == RepetitionType.Interleaved)
+                {
+                    PreDecomposeInterleaved();
+                }
+                else
+                {
+                    PreDecomposeBlockwise();
+                }
+                IsPredecomposed = true;
             }
 
             return base.OnDecompose(ctx, startIndex, out result);
