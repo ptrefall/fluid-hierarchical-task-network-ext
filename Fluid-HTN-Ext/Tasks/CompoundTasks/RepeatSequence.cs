@@ -20,13 +20,24 @@ namespace FluidHTN.Compounds
             Interleaved,
             /// <summary>
             ///     Individual tasks are repeated.
-            ///     A,B.C => A,A,B,B,C,C
+            ///     A,B,C => A,A,B,B,C,C
             /// </summary>
             Blockwise
         }
 
+        /// <summary>
+        ///     The number of repetitions.
+        /// </summary>
         protected readonly int Repetitions;
+
+        /// <summary>
+        ///     How to repeat the subtasks.
+        /// </summary>
         private readonly RepetitionType Type;
+
+        /// <summary>
+        ///     True, if repetition was applied to the subtasks.
+        /// </summary>
         private bool IsPredecomposed;
 
         /// <summary>
