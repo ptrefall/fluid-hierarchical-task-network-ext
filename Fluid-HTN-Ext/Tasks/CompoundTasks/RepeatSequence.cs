@@ -67,7 +67,7 @@ namespace FluidHTN.Compounds
         private void PreDecomposeInterleaved()
         {
             int num = Subtasks.Count;
-            for (int i = 0; i < Repetitions; ++i)
+            for (int i = 0; i < Repetitions - 1; ++i)
             {
                 for (int j = 0; j < num; ++j)
                 {
