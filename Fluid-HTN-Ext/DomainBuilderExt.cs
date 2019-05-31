@@ -96,14 +96,11 @@ namespace FluidHTN
         ///     A sequence that repeats its subtasks a number of times. The repetition is either
         ///     done interleaved (1,2,1,2,...) or blockwise (1,1,2,2,...).
         /// </summary>
-        /// <param name="repetitions">The number of repetitions</param>
-        /// <param name="type">How to repeat (interleaved/blockwise)</param>
-        /// <returns></returns>
-        public static DB Repeat<DB, T>(this DB builder, string name, int repetitions, RepeatSequence.RepetitionType type = RepeatSequence.RepetitionType.Interleaved)
+        public static DB Repeat<DB, T>(this DB builder, string name, uint worldStateIndex, RepeatSequence.RepetitionType type = RepeatSequence.RepetitionType.Interleaved)
             where DB : BaseDomainBuilder<DB, T>
             where T : IContext
         {
-            var task = new RepeatSequence(repetitions, type);
+            var task = new RepeatSequence(worldStateIndex, type);
             return builder.CompoundTask(name, task);
         }
 

@@ -26,88 +26,120 @@ namespace FluidHTN.Compounds
         }
 
         /// <summary>
-        ///     The number of repetitions.
+        ///     The index in the world state from where we want to read the repetition value.
         /// </summary>
-        protected readonly int Repetitions;
+        protected readonly uint WorldStateIndex;
 
         /// <summary>
         ///     How to repeat the subtasks.
         /// </summary>
-        private readonly RepetitionType Type;
+        private readonly RepetitionType _type;
 
         /// <summary>
-        ///     True, if repetition was applied to the subtasks.
+        ///     A sequence that repeats its sub-tasks a number of times.
         /// </summary>
-        private bool IsPredecomposed;
-
-        /// <summary>
-        ///     A sequence that repeats its subtasks a number of times.
-        /// </summary>
-        /// <param name="repetitions">How many repetitions to perform. (>=1)</param>
-        /// <param name="type">How to repeat the tasks.</param>
-        public RepeatSequence(int repetitions, RepetitionType type = RepetitionType.Interleaved)
+        public RepeatSequence(uint worldStateIndex, RepetitionType type = RepetitionType.Interleaved)
         {
-            if (repetitions < 1)
-            {
-                throw new ArgumentException("Cannot have fewer than 1 repetitions!", "repetitions");
-            }
-            else
-            {
-                Repetitions = repetitions;
-                Type = type;
-                IsPredecomposed = false;
-            }
+            WorldStateIndex = worldStateIndex;
+            _type = type;
         }
 
         protected override DecompositionStatus OnDecompose(IContext ctx, int startIndex, out Queue<ITask> result)
         {
-            if (!IsPredecomposed)
+            Plan.Clear();
+
+            if (IsValidWorldStateIndex(ctx) == false)
             {
-                if (Type == RepetitionType.Interleaved)
-                {
-                    PreDecomposeInterleaved();
-                }
-                else
-                {
-                    PreDecomposeBlockwise();
-                }
-                IsPredecomposed = true;
+                result = Plan;
+                return DecompositionStatus.Failed;
             }
 
-            return base.OnDecompose(ctx, startIndex, out result);
-        }
+            var repetitions = ctx.WorldState[WorldStateIndex];
 
-        /// <summary>
-        ///     Duplicates every entry in the Subtasks list such that the entire
-        ///     sequence is performed the specified number of times.
-        /// </summary>
-        private void PreDecomposeInterleaved()
-        {
-            int num = Subtasks.Count;
-            for (int i = 0; i < Repetitions - 1; ++i)
+            switch (_type)
             {
-                for (int j = 0; j < num; ++j)
-                {
-                    Subtasks.Add(Subtasks[j]);
-                }
+                case RepetitionType.Interleaved:
+                default:
+                    return DecomposeInterleaved(ctx, startIndex, repetitions, out result);
+                case RepetitionType.Blockwise:
+                    return DecomposeBlockwise(ctx, startIndex, repetitions, out result);
             }
         }
 
-        /// <summary>
-        ///     Duplicates every entry in the Subtasks list such that every task
-        ///     is repeated the specified number of times before the agent moves
-        ///     on to the next task.
-        /// </summary>
-        private void PreDecomposeBlockwise()
+        private DecompositionStatus DecomposeInterleaved(IContext ctx, int startIndex, byte repetitions, out Queue<ITask> result)
         {
-            int num = Subtasks.Count;
-            for (int i = num - 1; i >= 0; --i)
+            var oldStackDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
+
+            for (int i = 0; i < repetitions; ++i)
             {
-                for (int j = 0; j < Repetitions - 1; ++j)
+                for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
                 {
-                    Subtasks.Insert(i, Subtasks[i]);
+                    var task = Subtasks[taskIndex];
+                    var status = OnDecomposeTask(ctx, task, taskIndex, oldStackDepth, out result);
+                    switch (status)
+                    {
+                        case DecompositionStatus.Rejected:
+                        case DecompositionStatus.Failed:
+                        {
+                            ctx.Factory.FreeArray(ref oldStackDepth);
+                            return status;
+                        }
+
+                        //TODO: Repeat sequences does not support partials yet!
+                        case DecompositionStatus.Partial:
+                        {
+                            ctx.Factory.FreeArray(ref oldStackDepth);
+                            return DecompositionStatus.Failed;
+                        }
+                    }
                 }
             }
+
+            ctx.Factory.FreeArray(ref oldStackDepth);
+
+            result = Plan;
+            return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
+        }
+
+        private DecompositionStatus DecomposeBlockwise(IContext ctx, int startIndex, byte repetitions, out Queue<ITask> result)
+        {
+            var oldStackDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
+
+            for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
+            {
+                var task = Subtasks[taskIndex];
+
+                for (int i = 0; i < repetitions; ++i)
+                {
+                    var status = OnDecomposeTask(ctx, task, taskIndex, oldStackDepth, out result);
+                    switch (status)
+                    {
+                        case DecompositionStatus.Rejected:
+                        case DecompositionStatus.Failed:
+                        {
+                            ctx.Factory.FreeArray(ref oldStackDepth);
+                            return status;
+                        }
+
+                        //TODO: Repeat sequences does not support partials yet!
+                        case DecompositionStatus.Partial:
+                        {
+                            ctx.Factory.FreeArray(ref oldStackDepth);
+                            return DecompositionStatus.Failed;
+                        }
+                    }
+                }
+            }
+
+            ctx.Factory.FreeArray(ref oldStackDepth);
+
+            result = Plan;
+            return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
+        }
+
+        private bool IsValidWorldStateIndex(IContext ctx)
+        {
+            return WorldStateIndex < ctx.WorldState.Length;
         }
     }
 }

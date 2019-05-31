@@ -25,46 +25,22 @@ namespace FluidHTN.Compounds
         protected override DecompositionStatus OnDecompose(IContext ctx, int startIndex, out Queue<ITask> result)
         {
             Plan.Clear();
+            result = null;
 
-            var taskIndex = _random.Next(startIndex, Subtasks.Count);
-            var task = Subtasks[taskIndex];
-
-            if (task.IsValid(ctx) == false)
+            for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
             {
-                result = Plan;
-                return DecompositionStatus.Succeeded;
-            }
+                var task = Subtasks[taskIndex];
+                var status = OnDecomposeTask(ctx, task, taskIndex, null, out result);
 
-            if (task is ICompoundTask compoundTask)
-            {
-                var status = compoundTask.Decompose(ctx, 0, out var subPlan);
-
-                // If result is null, that means the entire planning procedure should cancel.
-                if (status == DecompositionStatus.Rejected)
-                {
-                    result = Plan;
-                    return DecompositionStatus.Succeeded;
-                }
-
-                // If the decomposition failed
+                // Even though we always return success, we still treat this as a selector.
                 if (status == DecompositionStatus.Failed)
-                {
-                    result = Plan;
-                    return DecompositionStatus.Succeeded;
-                }
+                    continue;
 
-                while (subPlan.Count > 0)
-                {
-                    Plan.Enqueue(subPlan.Dequeue());
-                }
-            }
-            else if (task is IPrimitiveTask primitiveTask)
-            {
-                primitiveTask.ApplyEffects(ctx);
-                Plan.Enqueue(task);
+                break;
             }
 
-            result = Plan;
+            if (result == null)
+                result = Plan;
             return DecompositionStatus.Succeeded;
         }
     }

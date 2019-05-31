@@ -24,44 +24,14 @@ namespace FluidHTN.Compounds
         {
             Plan.Clear();
 
-            var task = FindBestTask(ctx, startIndex);
+            var task = FindBestTask(ctx, startIndex, out var taskIndex);
             if (task == null)
             {
                 result = Plan;
                 return DecompositionStatus.Failed;
             }
 
-            if (task is ICompoundTask compoundTask)
-            {
-                var status = compoundTask.Decompose(ctx, 0, out var subPlan);
-
-                // If result is null, that means the entire planning procedure should cancel.
-                if (status == DecompositionStatus.Rejected)
-                {
-                    result = null;
-                    return DecompositionStatus.Rejected;
-                }
-
-                // If the decomposition failed
-                if (status == DecompositionStatus.Failed)
-                {
-                    result = Plan;
-                    return DecompositionStatus.Failed;
-                }
-
-                while (subPlan.Count > 0)
-                {
-                    Plan.Enqueue(subPlan.Dequeue());
-                }
-            }
-            else if (task is IPrimitiveTask primitiveTask)
-            {
-                primitiveTask.ApplyEffects(ctx);
-                Plan.Enqueue(task);
-            }
-
-            result = Plan;
-            return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
+            return OnDecomposeTask(ctx, task, taskIndex, null, out result);
         }
 
         // ========================================================= INTERNAL FUNCTIONALITY
@@ -73,9 +43,10 @@ namespace FluidHTN.Compounds
         /// <param name="ctx"></param>
         /// <param name="startIndex"></param>
         /// <returns></returns>
-        protected virtual ITask FindBestTask(IContext ctx, int startIndex)
+        protected virtual ITask FindBestTask(IContext ctx, int startIndex, out int bestIndex)
         {
             var bestScore = 0f;
+            bestIndex = -1;
             ITask bestTask = null;
 
             for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
@@ -91,6 +62,7 @@ namespace FluidHTN.Compounds
                     {
                         bestScore = score;
                         bestTask = task;
+                        bestIndex = taskIndex;
                     }
                 }
             }

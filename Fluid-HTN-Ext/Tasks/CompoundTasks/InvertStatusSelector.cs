@@ -18,6 +18,7 @@ namespace FluidHTN.Compounds
         /// <summary>
         ///     In an Invert Status decomposition, we invert success/failure.
         ///     Note that Rejected is still returned as Rejected.
+        ///     Note that Partial is still returned as Partial (it doesn't really make sense to use with this selector).
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
@@ -25,46 +26,28 @@ namespace FluidHTN.Compounds
         {
             Plan.Clear();
 
-            var taskIndex = _random.Next(startIndex, Subtasks.Count);
-            var task = Subtasks[taskIndex];
-
-            if (task.IsValid(ctx) == false)
+            for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
             {
-                result = Plan;
-                return DecompositionStatus.Succeeded;
-            }
+                var task = Subtasks[taskIndex];
 
-            if (task is ICompoundTask compoundTask)
-            {
-                var status = compoundTask.Decompose(ctx, 0, out var subPlan);
-
-                // If result is null, that means the entire planning procedure should cancel.
-                if (status == DecompositionStatus.Rejected)
+                var status = OnDecomposeTask(ctx, task, taskIndex, null, out result);
+                switch (status)
                 {
-                    result = null;
-                    return DecompositionStatus.Rejected;
+                    case DecompositionStatus.Succeeded:
+                        return DecompositionStatus.Failed;
+
+                    // We treat this as a selector and will try until we decompose successfully
+                    case DecompositionStatus.Failed:
+                        continue;
                 }
 
-                // If the decomposition failed
-                if (status == DecompositionStatus.Failed)
-                {
-                    result = Plan;
-                    return DecompositionStatus.Succeeded;
-                }
-
-                while (subPlan.Count > 0)
-                {
-                    Plan.Enqueue(subPlan.Dequeue());
-                }
-            }
-            else if (task is IPrimitiveTask primitiveTask)
-            {
-                primitiveTask.ApplyEffects(ctx);
-                Plan.Enqueue(task);
+                // Rejected or Partial is not inverted.
+                return status;
             }
 
+            // If we failed to find a valid decomposition, we revert to Success.
             result = Plan;
-            return DecompositionStatus.Failed;
+            return DecompositionStatus.Succeeded;
         }
     }
 }
