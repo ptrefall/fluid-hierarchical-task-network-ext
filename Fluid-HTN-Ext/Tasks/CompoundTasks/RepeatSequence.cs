@@ -54,7 +54,7 @@ namespace FluidHTN.Compounds
                 return DecompositionStatus.Failed;
             }
 
-            var repetitions = ctx.WorldState[WorldStateIndex];
+            var repetitions = ctx.GetState((int)WorldStateIndex);
 
             switch (_type)
             {
