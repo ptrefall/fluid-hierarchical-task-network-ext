@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28729.10
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fluid-HTN-Ext", "Fluid-HTN-Ext\Fluid-HTN-Ext.csproj", "{BFF26E27-A02A-435C-BF8B-6FEFD459E107}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fluid-HTN-Ext", "Fluid-HTN-Ext\Fluid-HTN-Ext.csproj", "{BFF26E27-A02A-435C-BF8B-6FEFD459E107}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fluid-HTN-Ext.UnitTests", "Fluid-HTN-Ext.UnitTests\Fluid-HTN-Ext.UnitTests.csproj", "{B2168DDD-AF42-4EA9-A256-FEDDD9AB6D4E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{BFF26E27-A02A-435C-BF8B-6FEFD459E107}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFF26E27-A02A-435C-BF8B-6FEFD459E107}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFF26E27-A02A-435C-BF8B-6FEFD459E107}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2168DDD-AF42-4EA9-A256-FEDDD9AB6D4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2168DDD-AF42-4EA9-A256-FEDDD9AB6D4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2168DDD-AF42-4EA9-A256-FEDDD9AB6D4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2168DDD-AF42-4EA9-A256-FEDDD9AB6D4E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
