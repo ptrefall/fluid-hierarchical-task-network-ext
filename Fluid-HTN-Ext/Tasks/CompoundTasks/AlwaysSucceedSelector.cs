@@ -13,6 +13,13 @@ namespace FluidHTN.Compounds
 
         protected Random _random = new Random();
 
+        // ========================================================= VALIDITY
+
+        public override DecompositionStatus OnIsValidFailed(IContext ctx)
+        {
+            return DecompositionStatus.Succeeded;
+        }
+
         // ========================================================= DECOMPOSITION
 
         /// <summary>
