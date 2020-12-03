@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using FluidHTN.PrimitiveTasks;
 
 namespace FluidHTN.Compounds
 {
@@ -106,20 +107,28 @@ namespace FluidHTN.Compounds
                     continue;
                 }
 
-                if (task is IGOAPTask goapTask)
+                if (task is IPrimitiveTask primitiveTask)
                 {
                     // Due to branching permutations of state, and multiple possible solutions
                     // to the goal, where we want to end up with the shortest path, we need to
                     // reset the state stack for every task we operate on.
                     var oldStackDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
 
-                    goapTask.ApplyEffects(ctx);
+                    primitiveTask.ApplyEffects(ctx);
 
                     var node = ctx.Factory.Create<GOAPNode>();
                     {
                         node.Parent = parent;
-                        node.RunningCost = parent.RunningCost + goapTask.Cost(ctx);
-                        node.Task = goapTask;
+                        if (primitiveTask is IGOAPTask goapTask)
+                        {
+                            node.RunningCost = parent.RunningCost + goapTask.Cost(ctx);
+                        }
+                        else
+                        {
+                            node.RunningCost = parent.RunningCost + 1f; // Default cost is 1 when task is not a GOAP Task.
+                        }
+
+                        node.Task = primitiveTask;
                     }
 
                     if (ValidatesGoal(ctx))
