@@ -16,7 +16,7 @@ namespace Fluid_HTN_Ext.UnitTests
         {
             var domain = new DomainBuilder<MyContext>("test")
                 .UtilitySelect<DomainBuilder<MyContext>, MyContext>("utility select")
-                    .UtilityAction<DomainBuilder<MyContext>, MyContext, UtilityActionHighUtility>("high utility")
+                    .UtilityAction<DomainBuilder<MyContext>, MyContext, UtilityActionLowUtility>("low utility")
                         .Condition("Has not A", context => !context.HasState(MyWorldState.HasA))
                         .Do(context =>
                         {
@@ -25,7 +25,7 @@ namespace Fluid_HTN_Ext.UnitTests
                         })
                         .Effect("Has A", EffectType.PlanOnly, (context, type) => context.SetState(MyWorldState.HasA, true, type))
                     .End()
-                    .UtilityAction<DomainBuilder<MyContext>, MyContext, UtilityActionHighUtility>("low utility")
+                    .UtilityAction<DomainBuilder<MyContext>, MyContext, UtilityActionHighUtility>("high utility")
                         .Condition("Has not B", context => !context.HasState(MyWorldState.HasB))
                         .Do(context =>
                         {
