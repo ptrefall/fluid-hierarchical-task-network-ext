@@ -41,15 +41,18 @@ namespace FluidHTN.Compounds
             {
                 FreeNode(ctx, leaf);
             }
+
             ctx.Factory.FreeList(ref leaves);
 
             result = Plan;
+
             return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
         }
 
         private GOAPNode GetCheapestLeaf(List<GOAPNode> leaves)
         {
             GOAPNode cheapestLeaf = null;
+
             foreach (var leaf in leaves)
             {
                 if (cheapestLeaf != null)
@@ -89,6 +92,7 @@ namespace FluidHTN.Compounds
         {
             var nextNode = node.Parent;
             ctx.Factory.Free(ref node);
+
             if (nextNode != null)
             {
                 FreeNode(ctx, nextNode);
@@ -102,6 +106,7 @@ namespace FluidHTN.Compounds
             for (var taskIndex = 0; taskIndex < openSubtasks.Count; taskIndex++)
             {
                 var task = openSubtasks[taskIndex];
+
                 if (task.IsValid(ctx) == false)
                 {
                     continue;
@@ -119,6 +124,7 @@ namespace FluidHTN.Compounds
                     var node = ctx.Factory.Create<GOAPNode>();
                     {
                         node.Parent = parent;
+
                         if (primitiveTask is IGOAPTask goapTask)
                         {
                             node.RunningCost = parent.RunningCost + goapTask.Cost(ctx);
@@ -139,6 +145,7 @@ namespace FluidHTN.Compounds
                     else
                     {
                         var subset = GetSubset(ctx, task, openSubtasks);
+
                         if (TryBuildGraph(ctx, node, leaves, subset))
                         {
                             foundLeaf = true;
@@ -184,7 +191,9 @@ namespace FluidHTN.Compounds
             foreach (var task in tasks)
             {
                 if (task == currentTask)
+                {
                     continue;
+                }
 
                 subset.Add(task);
             }

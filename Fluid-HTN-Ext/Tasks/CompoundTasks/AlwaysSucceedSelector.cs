@@ -41,13 +41,18 @@ namespace FluidHTN.Compounds
 
                 // Even though we always return success, we still treat this as a selector.
                 if (status == DecompositionStatus.Failed)
+                {
                     continue;
+                }
 
                 break;
             }
 
             if (result == null)
+            {
                 result = Plan;
+            }
+
             return DecompositionStatus.Succeeded;
         }
     }

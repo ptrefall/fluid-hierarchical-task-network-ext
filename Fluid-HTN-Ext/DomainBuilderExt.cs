@@ -81,6 +81,7 @@ namespace FluidHTN
             where T : IContext
         {
             builder.CompoundTask<GOAPSequence>(name);
+
             if (builder.Pointer is GOAPSequence goap)
             {
                 foreach (var kvp in goal)
@@ -162,6 +163,7 @@ namespace FluidHTN
         {
             var domain = builder.Build();
             domain.Save(fileName);
+
             return domain;
         }
 
@@ -176,6 +178,7 @@ namespace FluidHTN
         {
             var domain = new Domain<T>(string.Empty);
             domain.Load(fileName);
+
             return domain;
         }
     }

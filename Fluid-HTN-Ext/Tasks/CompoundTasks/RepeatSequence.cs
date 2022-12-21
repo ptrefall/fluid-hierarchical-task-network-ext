@@ -60,9 +60,14 @@ namespace FluidHTN.Compounds
             {
                 case RepetitionType.Interleaved:
                 default:
+                {
                     return DecomposeInterleaved(ctx, startIndex, repetitions, out result);
+                }
+
                 case RepetitionType.Blockwise:
+                {
                     return DecomposeBlockwise(ctx, startIndex, repetitions, out result);
+                }
             }
         }
 
@@ -98,6 +103,7 @@ namespace FluidHTN.Compounds
             ctx.Factory.FreeArray(ref oldStackDepth);
 
             result = Plan;
+
             return result.Count == 0 ? DecompositionStatus.Failed : DecompositionStatus.Succeeded;
         }
 

@@ -25,6 +25,7 @@ namespace FluidHTN.Compounds
             Plan.Clear();
 
             var task = FindBestTask(ctx, startIndex, out var taskIndex);
+
             if (task == null)
             {
                 result = Plan;
@@ -52,12 +53,16 @@ namespace FluidHTN.Compounds
             for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
             {
                 var task = Subtasks[taskIndex];
+
                 if (task is IUtilityTask utilityTask)
                 {
                     if (utilityTask.IsValid(ctx) == false)
+                    {
                         continue;
+                    }
 
                     var score = utilityTask.Score(ctx);
+
                     if (bestScore < score)
                     {
                         bestScore = score;

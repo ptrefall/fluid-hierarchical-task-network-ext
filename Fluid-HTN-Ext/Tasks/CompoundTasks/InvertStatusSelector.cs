@@ -34,11 +34,15 @@ namespace FluidHTN.Compounds
                 switch (status)
                 {
                     case DecompositionStatus.Succeeded:
+                    {
                         return DecompositionStatus.Failed;
+                    }
 
                     // We treat this as a selector and will try until we decompose successfully
                     case DecompositionStatus.Failed:
+                    {
                         continue;
+                    }
                 }
 
                 // Rejected or Partial is not inverted.
@@ -47,6 +51,7 @@ namespace FluidHTN.Compounds
 
             // If we failed to find a valid decomposition, we revert to Success.
             result = Plan;
+
             return DecompositionStatus.Succeeded;
         }
     }
