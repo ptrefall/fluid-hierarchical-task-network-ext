@@ -40,7 +40,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Fluid-HTN">
-      <HintPath>..\Fluid-HTN-Ext\bin\Debug\netstandard2.0\Fluid-HTN.dll</HintPath>
+      <HintPath>..\..\fluid-hierarchical-task-network\Fluid-HTN\bin\Debug\Fluid-HTN.dll</HintPath>
     </Reference>
     <Reference Include="Fluid-HTN-Ext">
       <HintPath>..\Fluid-HTN-Ext\bin\Debug\netstandard2.0\Fluid-HTN-Ext.dll</HintPath>
