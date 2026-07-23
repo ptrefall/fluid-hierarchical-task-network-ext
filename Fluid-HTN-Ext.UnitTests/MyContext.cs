@@ -9,7 +9,10 @@ public enum MyWorldState : byte
 {
     HasA,
     HasB,
-    HasC
+    HasC,
+    HasD,
+    HasE,
+    HasF
 }
 
 internal class MyContext : BaseContext

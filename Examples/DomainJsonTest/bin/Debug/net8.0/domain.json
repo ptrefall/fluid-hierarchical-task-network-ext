@@ -1,0 +1,40 @@
+{
+  "name": "agent-domain",
+  "root": {
+    "type": "Sequence",
+    "name": "Root",
+    "subtasks": [
+      {
+        "type": "Selector",
+        "name": "Address Hunger",
+        "subtasks": [
+          { "type": "GetFood" },
+          { "type": "Idle" }
+        ]
+      },
+      {
+        "type": "Selector",
+        "name": "Address Fatigue (data-driven)",
+        "subtasks": [
+          {
+            "type": "Action",
+            "name": "Rest",
+            "conditions": [ { "type": "Condition", "state": "Tired", "value": true } ],
+            "operator": { "type": "Do" },
+            "effects": [ { "type": "Effect", "state": "Tired", "value": false, "effectType": "PlanAndExecute" } ]
+          },
+          { "type": "Idle" }
+        ]
+      },
+      {
+        "type": "Parallel",
+        "name": "Warm Up",
+        "subtasks": [
+          { "type": "Action", "name": "Stretch", "operator": { "type": "Do" } },
+          { "type": "Action", "name": "Look Around", "operator": { "type": "Do" } }
+        ]
+      },
+      { "type": "Patrol" }
+    ]
+  }
+}
