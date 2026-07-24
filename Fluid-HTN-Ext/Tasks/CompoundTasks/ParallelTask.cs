@@ -106,66 +106,23 @@ namespace FluidHTN.Compounds
             // it takes every branch. Selectors inside a branch still record their own choices as normal.
             for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
             {
-                var task = Subtasks[taskIndex];
+                var status = DecomposeBranch(ctx, taskIndex);
 
-                if (ctx.LogDecomposition)
+                if (status == DecompositionStatus.Rejected)
                 {
-                    Log(ctx, $"ParallelTask.OnDecompose:Branch index: {taskIndex}: {task?.Name}");
+                    // A rejection cancels the entire planning procedure, exactly as elsewhere.
+                    Abandon(ctx, ref oldStackDepth);
+                    result = null;
+                    return DecompositionStatus.Rejected;
                 }
 
-                // The inherited Plan buffer is our per-branch scratch. Each branch is decomposed into it,
-                // then copied off into that lane's own buffer.
-                Plan.Clear();
-
-                var branchDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
-                var status = OnDecomposeTask(ctx, task, taskIndex, branchDepth, out _);
-                ctx.Factory.FreeArray(ref branchDepth);
-
-                switch (status)
+                if (status == DecompositionStatus.Failed)
                 {
-                    case DecompositionStatus.Rejected:
-                    {
-                        // A rejection cancels the entire planning procedure, exactly as elsewhere.
-                        Abandon(ctx, ref oldStackDepth);
-                        result = null;
-                        return DecompositionStatus.Rejected;
-                    }
-
-                    case DecompositionStatus.Partial:
-                    {
-                        // A paused remainder has no lane to resume into. Move the pause outside the
-                        // parallel task.
-                        if (ctx.LogDecomposition)
-                        {
-                            Log(ctx,
-                                $"ParallelTask.OnDecompose:Failed:Branch {task?.Name} produced a partial plan, which is not supported inside a parallel branch!",
-                                ConsoleColor.Red);
-                        }
-
-                        ctx.HasPausedPartialPlan = false;
-                        ctx.PartialPlanQueue.Clear();
-
-                        Abandon(ctx, ref oldStackDepth);
-                        result = Plan;
-                        return DecompositionStatus.Failed;
-                    }
-
-                    case DecompositionStatus.Failed:
-                    {
-                        // All-or-nothing, exactly like a sequence: a branch that cannot be taken fails the
-                        // task. Wrap a branch in an AlwaysSucceedSelector to make it optional.
-                        Abandon(ctx, ref oldStackDepth);
-                        result = Plan;
-                        return DecompositionStatus.Failed;
-                    }
-                }
-
-                // Succeeded. An EMPTY contribution is legal and means "no lane for this branch" — that is
-                // how an AlwaysSucceedSelector reports optional work that could not be planned this time.
-                if (Plan.Count > 0)
-                {
-                    CopyInto(RequireBranchPlan(_branchIndices.Count), Plan);
-                    _branchIndices.Add(taskIndex);
+                    // All-or-nothing, exactly like a sequence: a branch that cannot be taken fails the
+                    // task. Wrap a branch in an AlwaysSucceedSelector to make it optional.
+                    Abandon(ctx, ref oldStackDepth);
+                    result = Plan;
+                    return DecompositionStatus.Failed;
                 }
 
                 // INDEPENDENCE: roll this branch's effects off the stack before decomposing the next one,
@@ -181,12 +138,70 @@ namespace FluidHTN.Compounds
 
             Plan.Clear();
 
+            return FinalizeDecomposition(ctx, out result);
+        }
+
+        /// <summary>
+        ///     Decompose a single sub-task into the inherited Plan scratch buffer and, on success with a
+        ///     non-empty contribution, copy it off into that lane's own buffer. A
+        ///     Partial plan is unsupported inside a branch and is reported as <see cref="DecompositionStatus.Failed"/>.
+        /// </summary>
+        private DecompositionStatus DecomposeBranch(IContext ctx, int taskIndex)
+        {
+            var task = Subtasks[taskIndex];
+
+            LogParallel(ctx, $"ParallelTask.OnDecompose:Branch index: {taskIndex}: {task?.Name}");
+
+            // The inherited Plan buffer is our per-branch scratch. Each branch is decomposed into it,
+            // then copied off into that lane's own buffer.
+            Plan.Clear();
+
+            var branchDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
+            var status = OnDecomposeTask(ctx, task, taskIndex, branchDepth, out _);
+            ctx.Factory.FreeArray(ref branchDepth);
+
+            if (status == DecompositionStatus.Rejected)
+            {
+                return DecompositionStatus.Rejected;
+            }
+
+            if (status == DecompositionStatus.Partial)
+            {
+                // A paused remainder has no lane to resume into. Move the pause outside the parallel task.
+                LogParallel(ctx,
+                    $"ParallelTask.OnDecompose:Failed:Branch {task?.Name} produced a partial plan, which is not supported inside a parallel branch!",
+                    ConsoleColor.Red);
+
+                ctx.HasPausedPartialPlan = false;
+                ctx.PartialPlanQueue.Clear();
+                return DecompositionStatus.Failed;
+            }
+
+            if (status == DecompositionStatus.Failed)
+            {
+                return DecompositionStatus.Failed;
+            }
+
+            // Succeeded. An EMPTY contribution is legal and means "no lane for this branch" — that is how
+            // an AlwaysSucceedSelector reports optional work that could not be planned this time.
+            if (Plan.Count > 0)
+            {
+                CopyInto(RequireBranchPlan(_branchIndices.Count), Plan);
+                _branchIndices.Add(taskIndex);
+            }
+
+            return DecompositionStatus.Succeeded;
+        }
+
+        /// <summary>
+        ///     Turn the decomposed lanes into the final result: fail when no branch produced a lane, or
+        ///     enqueue the runner as the parallel task's single plan slot and succeed.
+        /// </summary>
+        private DecompositionStatus FinalizeDecomposition(IContext ctx, out Queue<ITask> result)
+        {
             if (_branchIndices.Count == 0)
             {
-                if (ctx.LogDecomposition)
-                {
-                    Log(ctx, $"ParallelTask.OnDecompose:Failed:No branches produced a lane!", ConsoleColor.Red);
-                }
+                LogParallel(ctx, $"ParallelTask.OnDecompose:Failed:No branches produced a lane!", ConsoleColor.Red);
 
                 result = Plan;
                 return DecompositionStatus.Failed;
@@ -197,13 +212,19 @@ namespace FluidHTN.Compounds
             _runner.Parent = this;
             Plan.Enqueue(_runner);
 
-            if (ctx.LogDecomposition)
-            {
-                Log(ctx, $"ParallelTask.OnDecompose:Succeeded:{_branchIndices.Count} lanes!", ConsoleColor.Green);
-            }
+            LogParallel(ctx, $"ParallelTask.OnDecompose:Succeeded:{_branchIndices.Count} lanes!", ConsoleColor.Green);
 
             result = Plan;
             return DecompositionStatus.Succeeded;
+        }
+
+        /// <summary>Emit a decomposition log line, but only when the context has decomposition logging on.</summary>
+        private void LogParallel(IContext ctx, string message, ConsoleColor color = ConsoleColor.White)
+        {
+            if (ctx.LogDecomposition)
+            {
+                Log(ctx, message, color);
+            }
         }
 
         /// <summary>

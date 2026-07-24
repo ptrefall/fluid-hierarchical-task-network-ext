@@ -160,8 +160,18 @@ public class DomainJsonTestApp
 
         Console.WriteLine($"{indent}[{(isCompound ? "Compound" : "Primitive")}] {task.Name} ({taskType})");
 
-        // Conditions can sit on any task; effects only on primitive tasks. Printing them makes the
-        // JSON-authored "conditions"/"effects" nodes visible in the decomposed domain.
+        PrintConditionsAndEffects(task, indent);
+
+        if (isCompound)
+        {
+            PrintSubtasks(task, subtasksProperty!, depth);
+        }
+    }
+
+    // Conditions can sit on any task; effects only on primitive tasks. Printing them makes the
+    // JSON-authored "conditions"/"effects" nodes visible in the decomposed domain.
+    private void PrintConditionsAndEffects(ITask task, string indent)
+    {
         foreach (var condition in task.Conditions)
         {
             Console.WriteLine($"{indent}  · condition: {condition.Name}");
@@ -174,17 +184,18 @@ public class DomainJsonTestApp
                 Console.WriteLine($"{indent}  · effect: {effect.Name} [{effect.Type}]");
             }
         }
+    }
 
-        if (isCompound)
+    private void PrintSubtasks(ITask task, System.Reflection.PropertyInfo subtasksProperty, int depth)
+    {
+        if (!(subtasksProperty.GetValue(task) is System.Collections.IEnumerable subtasks))
         {
-            var subtasks = subtasksProperty!.GetValue(task) as System.Collections.IEnumerable;
-            if (subtasks != null)
-            {
-                foreach (ITask subtask in subtasks)
-                {
-                    PrintTaskTree(subtask, depth + 1);
-                }
-            }
+            return;
+        }
+
+        foreach (ITask subtask in subtasks)
+        {
+            PrintTaskTree(subtask, depth + 1);
         }
     }
 }

@@ -45,7 +45,7 @@ public class ParallelTaskDemo
 
             Console.WriteLine($"Tick {tick}: {(_tickLog.Count == 0 ? "(idle)" : string.Join(" | ", _tickLog))}");
 
-            if (context.PlannerState.CurrentTask == null && context.PlannerState.Plan.Count == 0 && tick > 1)
+            if (ParallelTaskHasDrained(context, tick))
             {
                 Console.WriteLine("\nEvery branch has drained, so the parallel task is done.");
                 break;
@@ -66,6 +66,15 @@ public class ParallelTaskDemo
         {
             Console.WriteLine("✗ A running lane was restarted by the replan!");
         }
+    }
+
+    // Idle from the second tick on, with nothing in flight and no plan queued, means every branch has
+    // drained. Tick 1 is excluded so the loop never bails before the parallel task has even started.
+    private static bool ParallelTaskHasDrained(CampContext context, int tick)
+    {
+        return context.PlannerState.CurrentTask == null
+            && context.PlannerState.Plan.Count == 0
+            && tick > 1;
     }
 
     private Domain<CampContext> BuildDomain()

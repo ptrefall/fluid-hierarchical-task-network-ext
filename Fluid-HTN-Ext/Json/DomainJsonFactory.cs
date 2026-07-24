@@ -151,32 +151,38 @@ namespace FluidHTN.Json
             // We are now responsible for applying its JSON-defined children and closing it.
             if (!ReferenceEquals(Builder.Pointer, pointerBefore))
             {
-                // Process conditions (preconditions on the task just opened)
-                foreach (var condition in node.Conditions)
-                {
-                    ProcessNode(condition);
-                }
-
-                // Process the operator (primitive task operator)
-                if (node.Operator is var op)
-                {
-                    ProcessNode(op);
-                }
-
-                // Process effects
-                foreach (var effect in node.Effects)
-                {
-                    ProcessNode(effect);
-                }
-
-                // Process subtasks (compound task children)
-                foreach (var subtask in node.Subtasks)
-                {
-                    ProcessNode(subtask);
-                }
+                ProcessChildren(node);
 
                 // Close the scope that was opened by the handler
                 Builder.End();
+            }
+        }
+
+        /// <summary>
+        ///     Applies a task's JSON-defined children — conditions, operator, effects and subtasks — to the
+        ///     currently open builder scope. A null operator is a no-op (ProcessNode returns early).
+        /// </summary>
+        private void ProcessChildren(DomainJsonNode node)
+        {
+            // Process conditions (preconditions on the task just opened)
+            foreach (var condition in node.Conditions)
+            {
+                ProcessNode(condition);
+            }
+
+            // Process the operator (primitive task operator)
+            ProcessNode(node.Operator);
+
+            // Process effects
+            foreach (var effect in node.Effects)
+            {
+                ProcessNode(effect);
+            }
+
+            // Process subtasks (compound task children)
+            foreach (var subtask in node.Subtasks)
+            {
+                ProcessNode(subtask);
             }
         }
 

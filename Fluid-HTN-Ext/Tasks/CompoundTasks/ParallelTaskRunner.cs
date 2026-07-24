@@ -171,8 +171,33 @@ namespace FluidHTN.Compounds
         /// </summary>
         public TaskStatus Update(IContext ctx)
         {
-            var anyLaneFailed = false;
-            var anyLaneOpen = false;
+            TickOpenLanes(ctx, out var anyLaneFailed, out var anyLaneOpen);
+
+            // All-or-nothing, like a sequence: one branch failing fails the parallel task. An author who
+            // wants a branch that cannot do this wraps it in an AlwaysSucceedSelector.
+            if (anyLaneFailed)
+            {
+                // The planner responds to a failure by aborting us, which tears every lane down.
+                return TaskStatus.Failure;
+            }
+
+            if (anyLaneOpen)
+            {
+                return TaskStatus.Continue;
+            }
+
+            CloseAllLanes(ctx, abort: false);
+            return TaskStatus.Success;
+        }
+
+        /// <summary>
+        ///     Drive every open lane a single step, reporting whether any lane broke and whether any lane
+        ///     is still in flight afterwards.
+        /// </summary>
+        private void TickOpenLanes(IContext ctx, out bool anyLaneFailed, out bool anyLaneOpen)
+        {
+            anyLaneFailed = false;
+            anyLaneOpen = false;
 
             for (var i = 0; i < _lanes.Count; i++)
             {
@@ -193,22 +218,6 @@ namespace FluidHTN.Compounds
                     anyLaneOpen = true;
                 }
             }
-
-            // All-or-nothing, like a sequence: one branch failing fails the parallel task. An author who
-            // wants a branch that cannot do this wraps it in an AlwaysSucceedSelector.
-            if (anyLaneFailed)
-            {
-                // The planner responds to a failure by aborting us, which tears every lane down.
-                return TaskStatus.Failure;
-            }
-
-            if (anyLaneOpen)
-            {
-                return TaskStatus.Continue;
-            }
-
-            CloseAllLanes(ctx, abort: false);
-            return TaskStatus.Success;
         }
 
         /// <summary>
@@ -245,6 +254,16 @@ namespace FluidHTN.Compounds
         /// </summary>
         private void OpenLanes(IContext ctx)
         {
+            CloseStaleLanes(ctx);
+            OpenMissingLanes();
+        }
+
+        /// <summary>
+        ///     Abort and close any open lane whose branch is no longer planned, or whose in-flight task no
+        ///     longer passes its executing conditions.
+        /// </summary>
+        private void CloseStaleLanes(IContext ctx)
+        {
             for (var i = 0; i < _lanes.Count; i++)
             {
                 var lane = _lanes[i];
@@ -261,7 +280,11 @@ namespace FluidHTN.Compounds
                     CloseLane(ctx, lane, abort: true);
                 }
             }
+        }
 
+        /// <summary>Open a fresh lane for every planned branch that does not already have one in flight.</summary>
+        private void OpenMissingLanes()
+        {
             for (var laneIndex = 0; laneIndex < _parallel.BranchCount; laneIndex++)
             {
                 var branchIndex = _parallel.BranchIndexAt(laneIndex);
@@ -285,52 +308,89 @@ namespace FluidHTN.Compounds
         {
             if (lane.CurrentTask == null)
             {
-                if (lane.Plan.Count == 0)
+                var started = StartNextLaneTask(ctx, lane);
+                if (started.HasValue)
                 {
-                    CloseLane(ctx, lane, abort: false);
-                    return true;
+                    return started.Value;
                 }
+            }
 
-                lane.CurrentTask = lane.Plan.Dequeue();
-                ctx.PlannerState.OnNewTask?.Invoke(lane.CurrentTask);
+            // The task might have completed on start (started == null means it is continuing), in which
+            // case we update it this same tick — exactly as the planner does with the main plan.
+            return UpdateLaneTask(ctx, lane);
+        }
 
-                foreach (var condition in lane.CurrentTask.Conditions)
+        /// <summary>
+        ///     Pull the lane's next task off its plan, validate its conditions and start its operator.
+        ///     Returns <c>true</c>/<c>false</c> when the tick is already decided (lane drained, task
+        ///     completed on start, or a break), or <c>null</c> when the task started and is continuing —
+        ///     in which case the caller falls through to the update phase on this same tick.
+        /// </summary>
+        private bool? StartNextLaneTask(IContext ctx, Lane lane)
+        {
+            if (lane.Plan.Count == 0)
+            {
+                CloseLane(ctx, lane, abort: false);
+                return true;
+            }
+
+            lane.CurrentTask = lane.Plan.Dequeue();
+            ctx.PlannerState.OnNewTask?.Invoke(lane.CurrentTask);
+
+            if (LaneTaskConditionFailed(ctx, lane.CurrentTask))
+            {
+                return false;
+            }
+
+            // A plan only ever contains primitive tasks with operators. Anything else is a domain that
+            // was not set up properly.
+            if (!(lane.CurrentTask is IPrimitiveTask taskToStart) || taskToStart.Operator == null)
+            {
+                return false;
+            }
+
+            var startStatus = taskToStart.Operator.Start(ctx);
+
+            if (startStatus == TaskStatus.Failure)
+            {
+                ctx.PlannerState.OnCurrentTaskFailed?.Invoke(taskToStart);
+                return false;
+            }
+
+            // We have to first report that the operator has run its start function successfully,
+            // before we report that the operator finished.
+            ctx.PlannerState.OnCurrentTaskStarted?.Invoke(taskToStart);
+
+            if (startStatus == TaskStatus.Success)
+            {
+                OnLaneTaskSucceeded(ctx, lane, taskToStart);
+                return true;
+            }
+
+            return null;
+        }
+
+        /// <summary>Validate a task's preconditions, reporting the first failure. Returns true on failure.</summary>
+        private static bool LaneTaskConditionFailed(IContext ctx, ITask task)
+        {
+            foreach (var condition in task.Conditions)
+            {
+                if (condition.IsValid(ctx) == false)
                 {
-                    if (condition.IsValid(ctx) == false)
-                    {
-                        ctx.PlannerState.OnNewTaskConditionFailed?.Invoke(lane.CurrentTask, condition);
-                        return false;
-                    }
-                }
-
-                // A plan only ever contains primitive tasks with operators. Anything else is a domain that
-                // was not set up properly.
-                if (!(lane.CurrentTask is IPrimitiveTask taskToStart) || taskToStart.Operator == null)
-                {
-                    return false;
-                }
-
-                var startStatus = taskToStart.Operator.Start(ctx);
-
-                if (startStatus == TaskStatus.Failure)
-                {
-                    ctx.PlannerState.OnCurrentTaskFailed?.Invoke(taskToStart);
-                    return false;
-                }
-
-                // We have to first report that the operator has run its start function successfully,
-                // before we report that the operator finished.
-                ctx.PlannerState.OnCurrentTaskStarted?.Invoke(taskToStart);
-
-                if (startStatus == TaskStatus.Success)
-                {
-                    OnLaneTaskSucceeded(ctx, lane, taskToStart);
+                    ctx.PlannerState.OnNewTaskConditionFailed?.Invoke(task, condition);
                     return true;
                 }
             }
 
-            // The task might have completed on start above, in which case the lane picks up its next task
-            // on the next tick — exactly as the planner does with the main plan.
+            return false;
+        }
+
+        /// <summary>
+        ///     Validate the lane's in-flight task against its executing conditions and drive its operator
+        ///     one update. Returns false when the lane broke, which fails the whole parallel task.
+        /// </summary>
+        private bool UpdateLaneTask(IContext ctx, Lane lane)
+        {
             if (!(lane.CurrentTask is IPrimitiveTask task))
             {
                 return true;
