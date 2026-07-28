@@ -337,12 +337,12 @@ namespace Fluid_HTN_Ext.UnitTests
         }
 
         /// <summary>
-        /// The one unavoidable divergence from a sequence. Concurrent branches start together, so a
-        /// branch must not be planned on the assumption that a sibling has already finished. The same
-        /// hierarchy authored as a sequence fails, because there the prediction is exactly the point.
+        /// Branches are decomposed in order, exactly like a sequence: an earlier branch's predicted
+        /// effects are on the world state when a later branch's conditions are validated. A hierarchy
+        /// that a sequence rejects is rejected identically by a parallel task.
         /// </summary>
         [TestMethod]
-        public void Branches_DoNotSeeEachOthersPlanOnlyPredictions_Ok()
+        public void Branches_SeeEarlierBranchesPlanOnlyPredictions_Ok()
         {
             var parallelDomain = new DomainBuilder<MyContext>("test")
                 .Parallel<DomainBuilder<MyContext>, MyContext>("par")
@@ -378,16 +378,46 @@ namespace Fluid_HTN_Ext.UnitTests
             sequenceCtx.Init();
             var sequenceStatus = sequenceDomain.FindPlan(sequenceCtx, out _);
 
-            Assert.AreEqual(DecompositionStatus.Succeeded, parallelStatus);
-            Assert.AreEqual(2, FindParallel(parallelDomain.Root).BranchCount);
-
+            // The second branch is planned against the first branch's prediction, so it is just as
+            // unsatisfiable here as it is in the sequence.
             Assert.AreNotEqual(DecompositionStatus.Succeeded, sequenceStatus);
+            Assert.AreEqual(sequenceStatus, parallelStatus);
         }
 
         /// <summary>
-        /// Branches are decomposed independently of each other, but their predicted outcomes are
-        /// applied together afterwards, so whatever is sequenced after the parallel task validates
-        /// against the joint result.
+        /// The flip side of the branches being decomposed in order: a later branch may rely on an
+        /// earlier branch's prediction, and the very same pair of branches authored the other way
+        /// around would not have been plannable.
+        /// </summary>
+        [TestMethod]
+        public void ALaterBranch_MayRequireAnEarlierBranchsPrediction_Ok()
+        {
+            var domain = new DomainBuilder<MyContext>("test")
+                .Parallel<DomainBuilder<MyContext>, MyContext>("par")
+                    .Action("sets A")
+                        .Effect("set A", EffectType.PlanOnly, (context, type) => context.SetState(MyWorldState.HasA, true, type))
+                        .Do(context => TaskStatus.Success)
+                    .End()
+                    .Action("requires A")
+                        .Condition("has A", context => context.HasState(MyWorldState.HasA))
+                        .Do(context => TaskStatus.Success)
+                    .End()
+                .End()
+                .Build();
+
+            var ctx = new MyContext();
+            ctx.Init();
+
+            var status = domain.FindPlan(ctx, out _);
+
+            Assert.AreEqual(DecompositionStatus.Succeeded, status);
+            Assert.AreEqual(2, FindParallel(domain.Root).BranchCount);
+        }
+
+        /// <summary>
+        /// Because every branch's predicted effects stay on the world state as the branches are
+        /// decomposed, whatever is sequenced after the parallel task validates against the joint
+        /// result of all of them.
         /// </summary>
         [TestMethod]
         public void TheJointOutcome_IsVisibleToATaskSequencedAfterTheParallel_Ok()

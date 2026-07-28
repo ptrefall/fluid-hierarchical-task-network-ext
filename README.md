@@ -33,11 +33,12 @@ new DomainBuilder<MyContext>("camp")
     .Build();
 ```
 
-The one place it has to diverge from a sequence is decomposition. A sequence deliberately applies each
-step's effects so the next step can validate against them, but concurrent branches start together, so a
-branch must not be planned assuming a sibling has already finished. The world state change stack is
-therefore rolled back between branches, and all of their effects are applied together afterwards - so
-whatever is sequenced *after* the parallel task still validates against the joint outcome.
+Decomposition is sequential too. Each branch's predicted effects are applied as it is decomposed, so
+the branches after it validate against them - which mirrors execution, where lane 0's task is ticked
+before lane 1's on every tick. Whatever is sequenced *after* the parallel task then validates against
+the joint outcome of all the branches, as normal. Keep in mind that a later branch is planned as
+though an earlier branch's effects have happened, while at runtime that branch has only *started* - a
+branch that needs a sibling's completed result belongs in a sequence, not a parallel.
 
 Lanes survive a replan that keeps the parallel task in the plan: a long durative branch keeps running,
 and its own partially consumed plan, while a newly plannable sibling opens a lane beside it. A replan

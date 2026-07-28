@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using FluidHTN.PrimitiveTasks;
 
 namespace FluidHTN.Compounds
 {
@@ -30,13 +29,18 @@ namespace FluidHTN.Compounds
     ///     </para>
     ///
     ///     <para>
-    ///     <b>The one unavoidable divergence from a sequence: branches are decomposed INDEPENDENTLY.</b>
-    ///     A sequence deliberately applies each step's effects so the NEXT step's conditions can validate
-    ///     against them. That would be unsound here — concurrent branches start together, so a branch must
-    ///     not be planned on the assumption that a sibling has already finished. The world state change
-    ///     stack is therefore rolled back between branches, and every branch's effects are re-applied once
-    ///     afterwards, so tasks sequenced AFTER the parallel task still validate against the joint outcome.
-    ///     If a branch genuinely needs a sibling's result first, it belongs in a sequence, not a parallel.
+    ///     <b>Branches are decomposed IN ORDER, exactly like a sequence.</b> Each branch's predicted
+    ///     effects are applied as it is decomposed, so the branches after it validate against them —
+    ///     which mirrors execution, where lane 0's task is ticked before lane 1's on every tick. The
+    ///     joint outcome is therefore just what has accumulated on the world state change stack by the
+    ///     end, and whatever is sequenced AFTER the parallel task validates against it as normal.
+    ///     </para>
+    ///
+    ///     <para>
+    ///     The one thing to keep in mind when relying on that: a later branch is planned as though an
+    ///     earlier branch's effects have happened, but at runtime the earlier branch has only STARTED,
+    ///     not necessarily finished. A branch that genuinely needs a sibling's completed result belongs
+    ///     in a sequence, not a parallel.
     ///     </para>
     ///
     ///     <para>
@@ -91,14 +95,16 @@ namespace FluidHTN.Compounds
         // ========================================================= DECOMPOSITION
 
         /// <summary>
-        ///     Decomposes every sub-task — all-or-nothing, like a sequence — into its own lane plan, rolling
-        ///     the world state change stack back between them so they stay independent, then pushes its
-        ///     runner onto the plan as a single element. The runner opens the lanes at execution time.
+        ///     Decomposes every sub-task in order — all-or-nothing, like a sequence — into its own lane
+        ///     plan, then pushes its runner onto the plan as a single element. The runner opens the lanes
+        ///     at execution time.
         /// </summary>
         protected override DecompositionStatus OnDecompose(IContext ctx, int startIndex, out Queue<ITask> result)
         {
             _branchIndices.Clear();
 
+            // Snapshotted OUTSIDE the loop, exactly as a Sequence does it: a parallel task must succeed as
+            // a whole, so a failure has to roll back every effect accumulated across all branches so far.
             var oldStackDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
 
             // NOTE: this loop takes no part in the Method Traversal Record, exactly like a Sequence. The
@@ -106,7 +112,7 @@ namespace FluidHTN.Compounds
             // it takes every branch. Selectors inside a branch still record their own choices as normal.
             for (var taskIndex = startIndex; taskIndex < Subtasks.Count; taskIndex++)
             {
-                var status = DecomposeBranch(ctx, taskIndex);
+                var status = DecomposeBranch(ctx, taskIndex, oldStackDepth);
 
                 if (status == DecompositionStatus.Rejected)
                 {
@@ -125,16 +131,11 @@ namespace FluidHTN.Compounds
                     return DecompositionStatus.Failed;
                 }
 
-                // INDEPENDENCE: roll this branch's effects off the stack before decomposing the next one,
-                // so concurrent branches never validate against each other.
-                ctx.TrimToStackDepth(oldStackDepth);
+                // A branch's effects are deliberately LEFT on the stack, so the branches after it — and
+                // whatever is sequenced after the parallel task — validate against them.
             }
 
             ctx.Factory.FreeArray(ref oldStackDepth);
-
-            // Now that the branches are all decomposed independently, apply their effects together, so a
-            // task sequenced AFTER this parallel task validates against the joint result.
-            ApplyJointOutcome(ctx);
 
             Plan.Clear();
 
@@ -146,7 +147,7 @@ namespace FluidHTN.Compounds
         ///     non-empty contribution, copy it off into that lane's own buffer. A
         ///     Partial plan is unsupported inside a branch and is reported as <see cref="DecompositionStatus.Failed"/>.
         /// </summary>
-        private DecompositionStatus DecomposeBranch(IContext ctx, int taskIndex)
+        private DecompositionStatus DecomposeBranch(IContext ctx, int taskIndex, int[] oldStackDepth)
         {
             var task = Subtasks[taskIndex];
 
@@ -156,9 +157,7 @@ namespace FluidHTN.Compounds
             // then copied off into that lane's own buffer.
             Plan.Clear();
 
-            var branchDepth = ctx.GetWorldStateChangeDepth(ctx.Factory);
-            var status = OnDecomposeTask(ctx, task, taskIndex, branchDepth, out _);
-            ctx.Factory.FreeArray(ref branchDepth);
+            var status = OnDecomposeTask(ctx, task, taskIndex, oldStackDepth, out _);
 
             if (status == DecompositionStatus.Rejected)
             {
@@ -224,25 +223,6 @@ namespace FluidHTN.Compounds
             if (ctx.LogDecomposition)
             {
                 Log(ctx, message, color);
-            }
-        }
-
-        /// <summary>
-        ///     Re-apply every lane's effects, in lane order, now that the branches have been decomposed
-        ///     independently of each other. This is what makes the joint outcome visible to whatever is
-        ///     sequenced after the parallel task.
-        /// </summary>
-        private void ApplyJointOutcome(IContext ctx)
-        {
-            for (var lane = 0; lane < _branchIndices.Count; lane++)
-            {
-                foreach (var task in _branchPlans[lane])
-                {
-                    if (task is IPrimitiveTask primitiveTask)
-                    {
-                        primitiveTask.ApplyEffects(ctx);
-                    }
-                }
             }
         }
 
