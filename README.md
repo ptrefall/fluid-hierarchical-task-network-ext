@@ -12,6 +12,7 @@ Work in progress extensions to the [Fluid Hierarchical Task Network](https://git
 * Repeat Sequence will repeat decomposition over its sub-tasks as many times as defined by the given world state value.
 * GOAP Sequence takes a goal state set and will try to find the shortest path to that goal state through its sub-tasks. Requires sub-tasks to implement the IGOAPTask interface.
 * Parallel Task decomposes like a sequence, but ticks all its branches at once. Each branch becomes its own execution lane; the task completes when every lane has drained, and fails when any one of them fails.
+* JSON domains: build a domain from JSON with `DomainJsonFactory`, mapping JSON task types to your builder methods via `[JsonDomainMethod]` or manual `Register`. The JSON parser is pluggable through `IDomainJsonProvider`. See `Examples/DomainJsonTest`.
 
 ### Parallel Task
 
@@ -52,5 +53,4 @@ See `Examples/ParallelTaskTest` for a runnable demonstration.
 Join the [discord channel](https://discord.gg/MuccnAz) to share your experience and get support on the usage of Fluid HTN.
 
 ## TODO
-* JSON serialization that opens up Fluid HTN to more editor possibilities.
 * Documentation

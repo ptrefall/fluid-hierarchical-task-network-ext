@@ -112,5 +112,31 @@ namespace Fluid_HTN_Ext.UnitTests
             // Both lanes drain on the first tick, which is what completes the parallel task itself.
             CollectionAssert.AreEqual(new[] { "a", "b", "par", "after" }, completed);
         }
+
+        [TestMethod]
+        public void DomainExtLoad_BuildsFromFile_Ok()
+        {
+            var path = System.IO.Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(path, Json);
+
+                var factory = new MyJsonDomainFactory("json-parallel", new SystemTextJsonProvider());
+                var domain = new Domain<MyContext>("unused").Load(factory, path);
+
+                var jsonRoot = (ICompoundTask) domain.Root.Subtasks[0];
+                Assert.AreEqual("Root", jsonRoot.Name);
+                Assert.IsInstanceOfType(jsonRoot.Subtasks[0], typeof(ParallelTask));
+
+                // The builder overload takes the same path; the factory is single-use, so a fresh one.
+                factory = new MyJsonDomainFactory("json-parallel", new SystemTextJsonProvider());
+                domain = new MyJsonDomainBuilder("unused").Load(factory, path);
+                Assert.AreEqual("Root", domain.Root.Subtasks[0].Name);
+            }
+            finally
+            {
+                System.IO.File.Delete(path);
+            }
+        }
     }
 }

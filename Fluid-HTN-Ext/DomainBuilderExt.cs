@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using FluidHTN.Compounds;
+using FluidHTN.Json;
 using FluidHTN.PrimitiveTasks;
 
 namespace FluidHTN
@@ -169,32 +170,17 @@ namespace FluidHTN
         // ========================================================= SERIALIZATION
 
         /// <summary>
-        ///     Builds the designed domain and saves it to a json file, then returns the domain instance.
-        /// </summary>
-        /// <param name="fileName"></param>
-        public static Domain<T> BuildAndSave<DB, T>(this DB builder, string fileName)
-            where DB : BaseDomainBuilder<DB, T>
-            where T : IContext
-        {
-            var domain = builder.Build();
-            domain.Save(fileName);
-
-            return domain;
-        }
-
-        /// <summary>
         ///     Loads a designed domain from a json file and returns a domain instance of it.
+        ///     The domain is built by the factory's own builder, not by the builder this is called on.
         /// </summary>
+        /// <param name="factory">The json factory whose builder methods the file's node types dispatch to</param>
         /// <param name="fileName"></param>
         /// <returns></returns>
-        public static Domain<T> Load<DB, T>(this DB builder, string fileName)
+        public static Domain<T> Load<DB, T>(this DB builder, DomainJsonFactory<DB, T> factory, string fileName)
             where DB : BaseDomainBuilder<DB, T>
             where T : IContext
         {
-            var domain = new Domain<T>(string.Empty);
-            domain.Load(fileName);
-
-            return domain;
+            return factory.BuildFromFile(fileName);
         }
     }
 }
