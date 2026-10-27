@@ -105,6 +105,21 @@ namespace FluidHTN
             return builder.CompoundTask(name, task);
         }
 
+        /// <summary>
+        ///     A task that decomposes like a sequence - all its sub-tasks must decompose successfully -
+        ///     but whose branches then run concurrently, each in its own execution lane. It completes when
+        ///     every branch has run to completion, and fails when any one of them fails.
+        ///     Wrap a branch in an Always Succeed Selector to make it optional.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static DB Parallel<DB, T>(this DB builder, string name)
+            where DB : BaseDomainBuilder<DB, T>
+            where T : IContext
+        {
+            return builder.CompoundTask<ParallelTask>(name);
+        }
+
         // ========================================================= PRIMITIVE TASKS
 
         /// <summary>
